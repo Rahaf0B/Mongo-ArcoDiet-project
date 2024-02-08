@@ -11,42 +11,57 @@ router.use(bodyParser.urlencoded({ extended: false }));
 
 router.post(
   "/register",
-  validation.CreateAccountForUserValidation, async(req: Request, res: Response) => {
+  validation.CreateAccountForUserValidation,
+  async (req: Request, res: Response) => {
     try {
       const instance = CUser.getInstance();
-
-      const data = await instance.CreateUser(req.body);
-
+      const data = await instance.CreateUser(req.body, 0);
       res.status(200).send(data);
     } catch (err: any) {
-        if(err?.cause==11000){
-            res.status(400).send("Email is already registered");
-
-        }
+      if (err?.cause == 11000) {
+        res.status(400).send("Email is already registered");
+      }
       res.status(500).end();
     }
   }
 );
 
-
-
+router.post(
+  "/register-nutritionist",
+  validation.CreateAccountForUserValidation,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const token = await instance.CreateUser(req.body, 1);
+      res.status(200).setHeader("Authorization", token).send({ msg: "ok" });
+    } catch (err: any) {
+      if (err?.cause == 11000) {
+        res.status(400).send("Email is already registered");
+      }
+      res.status(500).end();
+    }
+  }
+);
 
 router.post(
-    "/login",
-     async(req: Request, res: Response) => {
-      try {
-        const instance = CUser.getInstance();
-  
-        const data = await instance.LoginUser(req.body);
-  
-        res.status(200).send(data);
-      } catch (err: any) {
-          if(err?.cause=="Validation Error"){
-              res.status(400).send(err.message);
-  
-          }
-        res.status(500).end();
+  "/login",
+  validation.UserLoginValidation,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const token = await instance.LoginUser(req.body);
+      res.status(200).setHeader("Authorization", token).send({ msg: "ok" });
+    } catch (err: any) {
+      if (err?.cause == "Validation Error") {
+        res.status(400).send(err.message);
       }
+      res.status(500).end();
     }
-  );
+  }
+);
+
+router.post("/", async (req: Request, res: Response) => {
+  try {
+  } catch (err: any) {}
+});
 export default router;
