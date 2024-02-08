@@ -83,4 +83,43 @@ async function CreateAccountForUserValidation(
   }
 }
 
-export default { CreateAccountForUserValidation };
+async function UserLoginValidation(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let userSchema = object({
+    body: object({
+      email: string()
+        .strict(true)
+        .typeError("The Email Should be String")
+        .required("The email is required")
+        .email("It should be in the Email form")
+        .nullable(),
+
+      password: string()
+        .strict(true)
+        .required("The password is required")
+        .typeError("The password Should be String")
+        .min(6, "password should not be less than 6 digits")
+        .matches(
+          /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/,
+          "The password must contain characters,numbers and special characters"
+        )
+        .nullable(),
+    })
+      .required("The email,password are required")
+      .nullable()
+      .strict(true)
+      .noUnknown(true),
+  });
+
+  try {
+    const response = await userSchema.validate({ body: req.body });
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+}
+
+export default { CreateAccountForUserValidation, UserLoginValidation };
