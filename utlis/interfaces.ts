@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { Double, ObjectId } from "mongodb";
 
 export interface IUser {
   _id?:  ObjectId;
@@ -11,8 +11,8 @@ export interface IUser {
   allergies?: string[];
   diseases?: string[];
   profile_pic_url?: string;
-  weight?: number;
-  height?: number;
+  weight?: number  | Double;
+  height?: number | Double;
   is_nutritionist?: boolean;
   is_reqUser?: boolean;
   is_admin?: boolean;

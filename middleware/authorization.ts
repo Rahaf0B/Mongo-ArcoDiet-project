@@ -39,10 +39,11 @@ async function authenticateUser(
     try {
       const sessionData = await instance.checkSession(token);
       const dateNow = new Date();
-      if (!sessionData || dateNow > new Date(sessionData.expiration_date)) {
+      console.log(sessionData);
+      if (!sessionData || dateNow > new Date(sessionData.expiration_date as string)) {
         return res.status(401).send("The session token is invalid");
       } else {
-        req.uid = sessionData.user_id as unknown as string;
+        req.uid = sessionData.user_id.toString();
         next();
       }
     } catch (e: any) {

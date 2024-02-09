@@ -3,7 +3,7 @@ import mongoConnection from "../mongo.config";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ObjectId } from "bson";
-import { Db } from "mongodb";
+import { Db, Double } from "mongodb";
 import { ISession, IUser } from "../utlis/interfaces";
 
 export default class CUser {
@@ -51,9 +51,7 @@ export default class CUser {
   async checkSession(token: string): Promise<ISession> {
     const db = await mongoConnection.getDB();
     const data = await db.collection("session").findOne({
-      where: {
-        token: token,
-      },
+      token: token,
     });
 
     return data as unknown as ISession;
@@ -128,6 +126,39 @@ export default class CUser {
       }
     } catch (e: any) {
       throw new Error(e.message, { cause: e.cause });
+    }
+  }
+
+  async addHealthInfo(data: Partial<IUser>, user_id: ObjectId) {
+    try {
+      const db = await mongoConnection.getDB();
+      console.log(user_id);
+      data.weight = data.weight ? new Double(data.weight as number) : undefined;
+      data.height = data.height ? new Double(data.height as number) : undefined;
+      //ANCHOR - Put the name or the ID of the allergies and diseases
+
+      const updatedData = await db.collection("user").findOneAndUpdate(
+        { _id: new ObjectId(user_id) },
+        [
+          {
+            $addFields: data,
+          },
+        ],
+        {
+          returnDocument: "after",
+          ignoreUndefined: true,
+          projection: {
+            weight: 1,
+            height: 1,
+            _id: 0,
+            allergies: 1,
+            diseases: 1,
+          },
+        }
+      );
+      return updatedData;
+    } catch (e: any) {
+      throw new Error(e.message);
     }
   }
 }
