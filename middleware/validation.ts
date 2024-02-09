@@ -122,4 +122,176 @@ async function UserLoginValidation(
   }
 }
 
-export default { CreateAccountForUserValidation, UserLoginValidation };
+async function changePassValidation(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let userSchema = object({
+    body: object({
+      old_password: string()
+        .strict(true)
+        .required("The old_password is required")
+        .typeError("The password Should be String")
+        .min(6, "password should not be less than 6 digits")
+        .matches(
+          /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/,
+          "The password must contain characters,numbers and special characters"
+        )
+        .nullable(),
+      new_password: string()
+        .strict(true)
+        .required("The password is required")
+        .typeError("The new_password Should be String")
+        .min(6, "password should not be less than 6 digits")
+        .matches(
+          /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/,
+          "The password must contain characters,numbers and special characters"
+        )
+        .nullable(),
+
+      confirm_password: string()
+        .strict(true)
+        .required("The confirm_password is required")
+        .typeError("The confirm Password Should be String")
+        .min(6, "password should not be less than 6 digits")
+        .matches(
+          /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/,
+          "The password must contain characters,numbers and special characters"
+        )
+        .nullable(),
+    })
+      .required("The email,password,confirm Password are required")
+      .nullable()
+      .strict(true)
+      .noUnknown(true),
+  });
+
+  try {
+    const response = await userSchema.validate({ body: req.body });
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+}
+
+async function emailValidation(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let userSchema = object({
+    body: object({
+      email: string()
+        .strict(true)
+        .typeError("The Email Should be String")
+        .required("The email is required")
+        .email("It should be in the Email form")
+        .nullable(),
+    })
+      .required("The email,password,confirm Password are required")
+      .nullable()
+      .strict(true)
+      .noUnknown(true),
+  });
+
+  try {
+    const response = await userSchema.validate({ body: req.body });
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+}
+
+async function OPTCodeValidation(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let userSchema = object({
+    body: object({
+      email: string()
+        .strict(true)
+        .typeError("The Email Should be String")
+        .required("The email is required")
+        .email("It should be in the Email form")
+        .nullable(),
+
+      optCode: number()
+        .strict(true)
+        .required("The opt code is required")
+        .typeError("The opt code Should be number")
+        .nullable(),
+    })
+      .required("The email,opt code,  are required")
+      .nullable()
+      .strict(true)
+      .noUnknown(true),
+  });
+
+  try {
+    const response = await userSchema.validate({ body: req.body });
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+}
+
+async function forgetPassValidation(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let userSchema = object({
+    body: object({
+      email: string()
+        .strict(true)
+        .typeError("The Email Should be String")
+        .required("The email is required")
+        .email("It should be in the Email form")
+        .nullable(),
+
+      new_password: string()
+        .strict(true)
+        .required("The password is required")
+        .typeError("The new_password Should be String")
+        .min(6, "password should not be less than 6 digits")
+        .matches(
+          /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/,
+          "The password must contain characters,numbers and special characters"
+        )
+        .nullable(),
+
+      confirm_password: string()
+        .strict(true)
+        .required("The confirm Password is required")
+        .typeError("The confirm_password Should be String")
+        .min(6, "password should not be less than 6 digits")
+        .matches(
+          /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/,
+          "The password must contain characters,numbers and special characters"
+        )
+        .nullable(),
+    })
+      .required("The email,password,confirm Password are required")
+      .nullable()
+      .strict(true)
+      .noUnknown(true),
+  });
+
+  try {
+    const response = await userSchema.validate({ body: req.body });
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+}
+
+export default {
+  CreateAccountForUserValidation,
+  UserLoginValidation,
+  changePassValidation,
+  emailValidation,
+  OPTCodeValidation,
+  forgetPassValidation,
+};

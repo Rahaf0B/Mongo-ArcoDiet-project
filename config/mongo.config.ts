@@ -1,7 +1,7 @@
 import { Db, MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import { appCache } from "./appCache";
-import indexing from "./utlis/indexing";
+import indexing from "../utlis/indexing";
 
 dotenv.config();
 

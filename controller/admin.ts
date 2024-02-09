@@ -1,5 +1,5 @@
-import { appCache } from "../appCache";
-import mongoConnection from "../mongo.config";
+import { appCache } from "../config/appCache";
+import mongoConnection from "../config/mongo.config";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ObjectId } from "bson";
