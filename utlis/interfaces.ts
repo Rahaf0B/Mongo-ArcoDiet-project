@@ -16,6 +16,7 @@ export interface IUser {
   is_nutritionist?: boolean;
   is_reqUser?: boolean;
   is_admin?: boolean;
+  optCode?:number;
 }
 
 

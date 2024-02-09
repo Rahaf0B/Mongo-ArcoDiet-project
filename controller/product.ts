@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import mongoConnection from "../mongo.config";
+import mongoConnection from "../config/mongo.config";
 import { IProduct } from "../utlis/interfaces";
 
 export default class CProduct {

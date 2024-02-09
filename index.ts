@@ -1,8 +1,6 @@
 import express from "express";
-// import productRoutes from './routes/products';
 var cors = require("cors");
-// import "./mongos.config";
-import "./mongo.config";
+import "./config/mongo.config";
 import userRoutes from "./routes/user";
 import adminRoutes from "./routes/admin";
 import productRoutes from "./routes/product";

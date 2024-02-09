@@ -1,10 +1,11 @@
-import { appCache } from "../appCache";
-import mongoConnection from "../mongo.config";
+import { appCache } from "../config/appCache";
+import mongoConnection from "../config/mongo.config";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ObjectId } from "bson";
 import { Db, Double } from "mongodb";
 import { ISession, IUser } from "../utlis/interfaces";
+import emailSender from "../utlis/emailSender";
 
 export default class CUser {
   private static instance: CUser;
@@ -102,10 +103,10 @@ export default class CUser {
         return token;
       } catch (e: any) {
         session.endSession();
-        throw new Error(e, { cause: e.code });
+        throw new Error(e, { cause: e?.code });
       }
     } catch (e: any) {
-      throw new Error(e, { cause: e.code });
+      throw new Error(e, { cause: e?.code });
     }
   }
 
@@ -132,7 +133,6 @@ export default class CUser {
   async addHealthInfo(data: Partial<IUser>, user_id: ObjectId) {
     try {
       const db = await mongoConnection.getDB();
-      console.log(user_id);
       data.weight = data.weight ? new Double(data.weight as number) : undefined;
       data.height = data.height ? new Double(data.height as number) : undefined;
       //ANCHOR - Put the name or the ID of the allergies and diseases
@@ -159,6 +159,181 @@ export default class CUser {
       return updatedData;
     } catch (e: any) {
       throw new Error(e.message);
+    }
+  }
+
+  async getUserInfo(userId: string, attributes?: any): Promise<IUser> {
+    try {
+      const db = await mongoConnection.getDB();
+      const data = await db
+        .collection("user")
+        .findOne({ _id: new ObjectId(userId) }, { projection: attributes });
+      return data as unknown as IUser;
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
+
+  async getUserEmail(userId: string) {
+    try {
+      const data = await this.getUserInfo(userId, { email: 1, _id: 0 });
+      return data;
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
+
+  async getUserGeneralInfo(userId: string) {
+    try {
+      const data = await this.getUserInfo(userId, {
+        first_name: 1,
+        last_name: 1,
+        _id: 0,
+        date_of_birth: 1,
+        gender: 1,
+      });
+      return data;
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
+
+  async getUserHealthInfo(userId: string) {
+    try {
+      const data = await this.getUserInfo(userId, {
+        weight: 1,
+        height: 1,
+        _id: 0,
+        allergies: 1,
+        diseases: 1,
+      });
+      return data;
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
+
+  async editUserEmail(userId: string, email: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const data = await db
+        .collection("user")
+        .updateOne({ _id: new ObjectId(userId) }, { $set: { email: email } });
+      return true;
+    } catch (e: any) {
+      throw new Error(e, { cause: e?.code });
+    }
+  }
+
+  async editUserPassword(userId: string, passwords: any) {
+    try {
+      const userData = await this.getUserInfo(userId, {
+        password: 1,
+        _id: 0,
+      });
+      const validate = await bcrypt.compare(
+        passwords.old_password,
+        userData.password
+      );
+
+      if (validate && passwords.new_password === passwords.confirm_password) {
+        const salt = bcrypt.genSaltSync(10);
+        const updatedPassword = bcrypt.hashSync(passwords.new_password, salt);
+
+        const db = await mongoConnection.getDB();
+        const data = await db
+          .collection("user")
+          .updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: { password: updatedPassword } }
+          );
+        return true;
+      } else {
+        throw new Error(
+          validate
+            ? "new-password and the confirm-password are not the same"
+            : "Invalid password",
+          {
+            cause: "Validation Error",
+          }
+        );
+      }
+    } catch (e: any) {
+      throw new Error(e, { cause: e?.cause });
+    }
+  }
+
+  async sendOPTCode(email: any) {
+    try {
+      const db = await mongoConnection.getDB();
+      const user = await db.collection("user").findOne({ email: email.email });
+      if (user) {
+        const randomOPT = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
+        const updatedData = await await db.collection("user").updateOne(
+          {
+            _id: user._id,
+          },
+          { $set: { optCode: randomOPT } }
+        );
+        emailSender.sendEmail(
+          user.email,
+          "OPT CODE",
+          "Your OPT CODE is " + randomOPT.toString()
+        );
+      } else {
+        throw new Error("The Email not found", {
+          cause: "NOT FOUND",
+        });
+      }
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error?.cause });
+    }
+  }
+
+  async validateOPTCode(data: Partial<IUser>): Promise<boolean> {
+    try {
+      const db = await mongoConnection.getDB();
+      const user = await db
+        .collection("user")
+        .findOneAndUpdate(
+          { $and: [{ email: data.email }, { optCode: data.optCode }] },
+          [{ $unset: "optCode" }]
+        );
+      if (user) {
+        return true;
+      } else
+        throw new Error(
+          "The user with email is not exist or the optCode is invalid",
+          { cause: "invalid" }
+        );
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error?.cause });
+    }
+  }
+
+  async forgetPassword(data: any) {
+    if (data.new_password === data.confirm_password) {
+      const salt = bcrypt.genSaltSync(10);
+      const updatedPassword = bcrypt.hashSync(data.new_password, salt);
+      try {
+        const db = await mongoConnection.getDB();
+        const user = await db
+          .collection("user")
+          .updateOne(
+            { email: data.email },
+            { $set: { password: updatedPassword } }
+          );
+      } catch (e: any) {
+        throw new Error(e.message);
+      }
+    } else {
+      throw new Error(
+        "new-password and the confirm-password are not the same",
+
+        {
+          cause: "Validation Error",
+        }
+      );
     }
   }
 }
