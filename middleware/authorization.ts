@@ -39,7 +39,6 @@ async function authenticateUser(
     try {
       const sessionData = await instance.checkSession(token);
       const dateNow = new Date();
-      console.log(sessionData);
       if (!sessionData || dateNow > new Date(sessionData.expiration_date as string)) {
         return res.status(401).send("The session token is invalid");
       } else {
