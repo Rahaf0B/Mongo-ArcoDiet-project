@@ -78,3 +78,15 @@ export interface IProduct{
   wheat_derivatives_existing?:boolean,
   soybeans_existing?: boolean,
 }
+
+export interface IAppointmentInfo{
+  date:string | Date;
+  starting_time:string | Date;
+ending_time:string | Date;
+available:boolean;
+}
+export interface IAppointment{
+  nutritionist_id:ObjectId;
+ appointmentInfo:IAppointmentInfo[];
+
+}
