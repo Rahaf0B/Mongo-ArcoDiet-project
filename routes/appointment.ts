@@ -71,4 +71,22 @@ router.patch(
     }
   }
 );
+
+
+
+
+router.post(
+    "/delete-appointment",
+    authorization.authenticateUser,
+    permission.nutritionistPermission,
+    async (req, res) => {
+      try {
+        const instance = CAppointment.getInstance();
+        const data = await instance.deleteAppointment(req.uid, req.body);
+        res.send(data);
+      } catch (err) {
+        res.status(500).end();
+      }
+    }
+  );
 export default router;

@@ -19,20 +19,6 @@ export default class CAdmin {
     return CAdmin.instance;
   }
 
-  private async connectToMongo(): Promise<any> {
-    const client = await mongoConnection.connectToDatabases();
-    const db = client.db();
-
-    return db;
-  }
-
-  private async createSessionMongo(): Promise<any> {
-    const client = await mongoConnection.connectToDatabases();
-    const session = client.startSession();
-
-    return session;
-  }
-
   async CreateAdminUser(data: IUser): Promise<string> {
     try {
       data.is_admin = true;

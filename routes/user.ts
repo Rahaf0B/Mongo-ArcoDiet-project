@@ -102,6 +102,44 @@ router.post(
   }
 );
 
+
+router.post(
+  "/send-optCode",
+  validation.emailValidation,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      await instance.sendOPTCode(req.body);
+      res.status(200).end();
+    } catch (e: any) {
+      if (e?.cause == "NOT FOUND") {
+        res.status(400).send(e.message);
+      } else {
+        res.status(500).send();
+      }
+    }
+  }
+);
+
+router.post(
+  "/validate-optCode",
+  validation.OPTCodeValidation,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const dataInfo = await instance.validateOPTCode(req.body);
+      res.status(200).send(dataInfo);
+    } catch (e: any) {
+      if (e?.cause == "invalid") {
+        res.status(400).send(e.message);
+      } else {
+        res.status(500).send();
+      }
+    }
+  }
+);
+
+
 router.patch(
   "/add-health-info",
   authorization.authenticateUser,
@@ -153,41 +191,6 @@ router.patch(
   }
 );
 
-router.post(
-  "/send-optCode",
-  validation.emailValidation,
-  async (req: Request, res: Response) => {
-    try {
-      const instance = CUser.getInstance();
-      await instance.sendOPTCode(req.body);
-      res.status(200).end();
-    } catch (e: any) {
-      if (e?.cause == "NOT FOUND") {
-        res.status(400).send(e.message);
-      } else {
-        res.status(500).send();
-      }
-    }
-  }
-);
-
-router.post(
-  "/validate-optCode",
-  validation.OPTCodeValidation,
-  async (req: Request, res: Response) => {
-    try {
-      const instance = CUser.getInstance();
-      const dataInfo = await instance.validateOPTCode(req.body);
-      res.status(200).send(dataInfo);
-    } catch (e: any) {
-      if (e?.cause == "invalid") {
-        res.status(400).send(e.message);
-      } else {
-        res.status(500).send();
-      }
-    }
-  }
-);
 
 router.patch(
   "/forget-password",
@@ -206,4 +209,5 @@ router.patch(
     }
   }
 );
+
 export default router;

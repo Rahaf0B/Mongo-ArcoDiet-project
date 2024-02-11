@@ -84,7 +84,7 @@ export default class CAppointment {
       const data = await db
         .collection("appointment")
         .updateOne(
-          { $and: [{ nutritionist_id: new ObjectId(uid) }] },
+          { nutritionist_id: new ObjectId(uid) },
           {
             $pull: {
               appointments: {
