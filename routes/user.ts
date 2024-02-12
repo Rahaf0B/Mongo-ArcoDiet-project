@@ -102,7 +102,6 @@ router.post(
   }
 );
 
-
 router.post(
   "/send-optCode",
   validation.emailValidation,
@@ -138,7 +137,6 @@ router.post(
     }
   }
 );
-
 
 router.patch(
   "/add-health-info",
@@ -190,7 +188,6 @@ router.patch(
     }
   }
 );
-
 
 router.patch(
   "/forget-password",
