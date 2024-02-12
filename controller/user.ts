@@ -103,10 +103,10 @@ export default class CUser {
         return token;
       } catch (e: any) {
         session.endSession();
-        throw new Error(e, { cause: e?.code });
+        throw new Error(e, { cause: e.code ? e?.code : e?.cause });
       }
     } catch (e: any) {
-      throw new Error(e, { cause: e?.code });
+      throw new Error(e, { cause: e.code ? e?.code : e?.cause });
     }
   }
 
@@ -334,150 +334,6 @@ export default class CUser {
           cause: "Validation Error",
         }
       );
-    }
-  }
-
-  async getNutritionists(
-    ItemNumber: number,
-    nutritionist_id: string | undefined
-  ): Promise<IUser[]> {
-    try {
-      const db = await mongoConnection.getDB();
-      const data = await db.collection("user").find(
-        {
-          $and: [
-            nutritionist_id
-              ? { _id: { $gt: new ObjectId(nutritionist_id) } }
-              : {},
-            { is_nutritionist: true },
-          ],
-        },
-        {
-          limit: ItemNumber,
-          sort: { _id: 1 },
-          projection: {
-            first_name: 1,
-            last_name: 1,
-            profile_pic_url: 1,
-            price: 1,
-            _id: 1,
-          },
-        }
-      );
-      return data.toArray() as unknown as IUser[];
-    } catch (e: any) {
-      throw new Error(e.message);
-    }
-  }
-
-  async getOneNutritionist(nutritionist_id: string): Promise<IUser> {
-    try {
-      const db = await mongoConnection.getDB();
-      const data = await db.collection("user").findOne(
-        {
-          $and: [
-            { _id: new ObjectId(nutritionist_id) },
-            { is_nutritionist: true },
-          ],
-        },
-        {
-          projection: {
-            first_name: 1,
-            last_name: 1,
-            profile_pic_url: 1,
-            price: 1,
-            _id: 1,
-          },
-        }
-      );
-      return data as unknown as IUser;
-    } catch (e: any) {
-      throw new Error(e.message);
-    }
-  }
-  async addNutritionistToFavorite(uid: string, nutritionist_id: string) {
-    try {
-      const db = await mongoConnection.getDB();
-      const nutritionistInfo = await this.getOneNutritionist(nutritionist_id);
-      if (nutritionistInfo) {
-        const data = await db.collection("nutritionist-favorite").updateOne(
-          { user_id: new ObjectId(uid) },
-          {
-            $addToSet: {
-              nutritionists: {
-                nutritionist_id: new ObjectId(nutritionist_id),
-              },
-            },
-          },
-          { upsert: true }
-        );
-        return true;
-      } else {
-        throw new Error("There is no Nutritionist with this ID", {
-          cause: "not-found",
-        });
-      }
-    } catch (error: any) {
-      throw new Error(error.message, { cause: error?.cause });
-    }
-  }
-
-  async removeNutritionistFromFavorite(uid: string, nutritionist_id: string) {
-    try {
-      const db = await mongoConnection.getDB();
-      const data = await db.collection("nutritionist-favorite").updateOne(
-        { user_id: new ObjectId(uid) },
-        {
-          $pull: {
-            nutritionists: {
-              nutritionist_id: new ObjectId(nutritionist_id),
-            },
-          },
-        }
-      );
-    } catch (error: any) {
-      throw new Error(error.message, { cause: error?.cause });
-    }
-  }
-
-  async getNutritionistFromFavorite(uid: string): Promise<any> {
-    try {
-      const db = await mongoConnection.getDB();
-      const data = await db.collection("nutritionist-favorite").aggregate([
-        { $match: { user_id: new ObjectId(uid) } },
-        {
-          $unwind: "$nutritionists",
-        },
-        {
-          $lookup: {
-            from: "user",
-            localField: "nutritionists.nutritionist_id",
-            foreignField: "_id",
-            as: "nutritionistInfo",
-          },
-        },
-        {
-          $unwind: "$nutritionistInfo",
-        },
-        {
-          $addFields: {
-            nutritionist_id: "$nutritionistInfo._id",
-            nutritionist_first_name: "$nutritionistInfo.first_name",
-            nutritionist_last_name: "$nutritionistInfo.last_name",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            user_id: 0,
-            nutritionists: 0,
-            nutritionistInfo: 0,
-          },
-        },
-      ]);
-      return data ? data?.toArray() : [];
-    } catch (error: any) {
-      throw new Error(error.message, { cause: error?.cause });
     }
   }
 }

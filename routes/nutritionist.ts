@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import validation from "../middleware/validation";
 import authorization from "../middleware/authorization";
+import CNutritionist from "../controller/nutritionist";
 
 const router = Router();
 router.use(cookieParser());
@@ -15,8 +16,24 @@ router.get(
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
-      const instance = CUser.getInstance();
+      const instance = CNutritionist.getInstance();
       const data = await instance.getNutritionistFromFavorite(req.uid);
+      res.status(200).send(data);
+    } catch (err: any) {
+      res.status(500).end();
+    }
+  }
+);
+
+router.get(
+  "/high-rating-nutritionists",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CNutritionist.getInstance();
+      const data = await instance.getHighRatingNutritionists(
+        Number(req.query.number_of_items)
+      );
       res.status(200).send(data);
     } catch (err: any) {
       res.status(500).end();
@@ -29,7 +46,7 @@ router.get(
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
-      const instance = CUser.getInstance();
+      const instance = CNutritionist.getInstance();
       const data = await instance.getOneNutritionist(
         req.params.nutritionist_id.toString()
       );
@@ -45,7 +62,7 @@ router.get(
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
-      const instance = CUser.getInstance();
+      const instance = CNutritionist.getInstance();
       const data = await instance.getNutritionists(
         Number(req.query.number_of_items),
         req.query.nutritionist_id
@@ -64,7 +81,7 @@ router.post(
   authorization.authenticateUser,
   async (req, res) => {
     try {
-      const instance = CUser.getInstance();
+      const instance = CNutritionist.getInstance();
       const data = await instance.addNutritionistToFavorite(
         req.uid,
         req.params.nutritionist_id
@@ -78,12 +95,32 @@ router.post(
   }
 );
 
+router.post(
+  "/add-rating/:nutritionist_id",
+  authorization.authenticateUser,
+  async (req, res) => {
+    try {
+      const instance = CNutritionist.getInstance();
+      const data = await instance.addRatingToNutritionist(
+        req.uid,
+        req.params.nutritionist_id,
+        req.body.rating
+      );
+      res.status(200).send({ msg: data });
+    } catch (err: any) {
+      if (err?.cause == "not-found") {
+        res.status(404).send(err.message);
+      } else res.status(500).end();
+    }
+  }
+);
+
 router.delete(
   "/remove-from-favorite/:nutritionist_id",
   authorization.authenticateUser,
   async (req, res) => {
     try {
-      const instance = CUser.getInstance();
+      const instance = CNutritionist.getInstance();
       const data = await instance.removeNutritionistFromFavorite(
         req.uid,
         req.params.nutritionist_id
