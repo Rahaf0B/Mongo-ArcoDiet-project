@@ -81,24 +81,296 @@ export default class CAppointment {
         .utc()
         .format("HH:mmA");
       const db = await mongoConnection.getDB();
-      const data = await db
-        .collection("appointment")
-        .updateOne(
-          { nutritionist_id: new ObjectId(uid) },
-          {
-            $pull: {
-              appointments: {
-                $and: [
-                  { date: new Date(appointmentInfo.date) },
-                  { starting_time: appointmentInfo.starting_time },
-                ],
-              },
+      const data = await db.collection("appointment").updateOne(
+        { nutritionist_id: new ObjectId(uid), available: true },
+        {
+          $pull: {
+            appointments: {
+              $and: [
+                { date: new Date(appointmentInfo.date) },
+                { starting_time: appointmentInfo.starting_time },
+              ],
             },
-          }
-        );
+          },
+        }
+      );
       return true;
     } catch (e: any) {
       throw new Error(e);
+    }
+  }
+
+  async reserveAppointment(uid: string, appointmentInfo: any): Promise<any> {
+    try {
+      const db = await mongoConnection.getDB();
+      const session = await mongoConnection.createSessionMongo();
+      try {
+        const appointmentReserved = await session.withTransaction(async () => {
+          const appointment = db.collection("appointment").aggregate([
+            {
+              $match: {
+                nutritionist_id: new ObjectId(
+                  appointmentInfo.nutritionist_id as string
+                ),
+              },
+            },
+            {
+              $unwind: "$appointments",
+            },
+            {
+              $match: {
+                $and: [
+                  { "appointments.date": new Date(appointmentInfo.date) },
+                  {
+                    "appointments.starting_time": appointmentInfo.starting_time,
+                  },
+                  { "appointments.available": true },
+                ],
+              },
+            },
+          ]);
+          var appointmentFound = await appointment.toArray();
+
+          if (appointmentFound.length > 0) {
+            const userReservation = await db
+              .collection("appointment")
+              .aggregate([
+                {
+                  $unwind: "$appointments",
+                },
+                {
+                  $match: {
+                    $and: [
+                      { "appointments.user_id": new ObjectId(uid) },
+                      { "appointments.date": new Date(appointmentInfo.date) },
+                      {
+                        "appointments.starting_time":
+                          appointmentInfo.starting_time,
+                      },
+                    ],
+                  },
+                },
+              ])
+              .toArray();
+            if (userReservation.length > 0) {
+              throw new Error("You Have Reservation At This Date And Time", {
+                cause: "conflict",
+              });
+            } else {
+              const updateAppointment = await db
+                .collection("appointment")
+                .updateOne(
+                  {
+                    nutritionist_id: new ObjectId(
+                      appointmentInfo.nutritionist_id as string
+                    ),
+                  },
+                  {
+                    $set: {
+                      "appointments.$[elem1].available": false,
+                      "appointments.$[elem1].user_id": new ObjectId(uid),
+                    },
+                  },
+                  {
+                    arrayFilters: [
+                      {
+                        $and: [
+                          {
+                            "elem1.date": {
+                              $eq: new Date(appointmentInfo.date),
+                            },
+                          },
+                          {
+                            "elem1.starting_time": {
+                              $eq: appointmentInfo.starting_time,
+                            },
+                          },
+                          { "elem1.available": { $eq: true } },
+                        ],
+                      },
+                    ],
+                  }
+                );
+              delete appointmentFound[0].appointments.available;
+
+              return appointmentFound[0];
+            }
+          } else {
+            throw new Error(
+              "There is no appointment with date: " +
+                appointmentInfo.date +
+                " and time: " +
+                appointmentInfo.starting_time +
+                " for this nutritionist",
+              { cause: "not-found" }
+            );
+          }
+        });
+        return appointmentReserved;
+      } catch (e: any) {
+        throw new Error(e.message, { cause: e?.cause });
+      }
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e?.cause });
+    }
+  }
+
+  async getNutritionistReservedAppointmentsByDate(
+    nutritionist_id: string,
+    date: string
+  ) {
+    try {
+      const db = await mongoConnection.getDB();
+
+      const appointment = await db.collection("appointment").aggregate([
+        {
+          $match: {
+            nutritionist_id: new ObjectId(nutritionist_id),
+          },
+        },
+        {
+          $unwind: "$appointments",
+        },
+        {
+          $match: {
+            $and: [
+              { "appointments.available": false },
+              { "appointments.date": new Date(date) },
+            ],
+          },
+        },
+        {
+          $project: {
+            "appointments.available": 0,
+            "appointments.user_id": 0,
+          },
+        },
+      ]);
+      return appointment.toArray();
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e?.cause });
+    }
+  }
+
+  async getNutritionistReservedAppointmentsWithUserInfo(
+    nutritionist_id: string
+  ) {
+    try {
+      const db = await mongoConnection.getDB();
+
+      const appointment = await db.collection("appointment").aggregate([
+        {
+          $match: {
+            nutritionist_id: new ObjectId(nutritionist_id),
+          },
+        },
+        {
+          $unwind: "$appointments",
+        },
+        {
+          $match: { "appointments.available": false },
+        },
+        {
+          $lookup: {
+            from: "user",
+            localField: "appointments.user_id",
+            foreignField: "_id",
+            as: "userInfo",
+          },
+        },
+        { $unwind: "$userInfo" },
+        {
+          $project: {
+            "appointments.date": 1,
+            "appointments.starting_time": 1,
+            "appointments.ending_time": 1,
+            "userInfo._id": 1,
+            "userInfo.first_name": 1,
+            "userInfo.last_name": 1,
+            "userInfo.profile_pic_url": 1,
+          },
+        },
+      ]);
+
+      return appointment.toArray();
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e?.cause });
+    }
+  }
+
+  async getUserReservedAppointmentsByDate(uid: string, date: string) {
+    try {
+      const db = await mongoConnection.getDB();
+
+      const appointment = await db.collection("appointment").aggregate([
+        {
+          $unwind: "$appointments",
+        },
+        {
+          $match: {
+            $and: [
+              { "appointments.available": false },
+              { "appointments.date": new Date(date) },
+              { "appointments.user_id": new ObjectId(uid) },
+            ],
+          },
+        },
+        { $addFields: { user_id: "$appointments.user_id" } },
+        {
+          $project: {
+            nutritionist_id: 0,
+            "appointments.available": 0,
+            "appointments.user_id": 0,
+          },
+        },
+      ]);
+      return appointment.toArray();
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e?.cause });
+    }
+  }
+
+  async getUserReservedAppointmentsWithNutritionistInfo(uid: string) {
+    try {
+      const db = await mongoConnection.getDB();
+
+      const appointment = await db.collection("appointment").aggregate([
+        {
+          $unwind: "$appointments",
+        },
+        {
+          $match: {
+            $and: [
+              { "appointments.available": false },
+              { "appointments.user_id": new ObjectId(uid) },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: "user",
+            localField: "nutritionist_id",
+            foreignField: "_id",
+            as: "nutritionistInfo",
+          },
+        },
+        { $unwind: "$nutritionistInfo" },
+        {
+          $project: {
+            "appointments.date": 1,
+            "appointments.starting_time": 1,
+            "appointments.ending_time": 1,
+            "nutritionistInfo._id": 1,
+            "nutritionistInfo.first_name": 1,
+            "nutritionistInfo.last_name": 1,
+            "nutritionistInfo.profile_pic_url": 1,
+          },
+        },
+      ]);
+
+      return appointment.toArray();
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e?.cause });
     }
   }
 }
