@@ -4,8 +4,9 @@ import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ObjectId } from "bson";
 import { Db, Double } from "mongodb";
-import { ISession, IUser } from "../utlis/interfaces";
+import { IMessage, ISession, IUser } from "../utlis/interfaces";
 import emailSender from "../utlis/emailSender";
+import dateHandler from "../utlis/dateHandler";
 
 export default class CUser {
   private static instance: CUser;
@@ -334,6 +335,106 @@ export default class CUser {
           cause: "Validation Error",
         }
       );
+    }
+  }
+
+  async saveMessage(uid: string, user_id: string, message: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const messageUpdated = await db.collection("messages").findOneAndUpdate(
+        {
+          $and: [
+            { participants: { $exists: true } },
+            {
+              participants: {
+                $all: [
+                  { $elemMatch: { $eq: new ObjectId(uid) } },
+                  { $elemMatch: { $eq: new ObjectId(user_id) } },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          $setOnInsert: {
+            participants: [new ObjectId(uid), new ObjectId(user_id)],
+          },
+          $addToSet: {
+            message: {
+              sender_id: new ObjectId(uid),
+              message: message,
+              date: new Date().toISOString(),
+            },
+          },
+        },
+
+        { upsert: true, returnDocument: "after" }
+      );
+
+      return messageUpdated.message[messageUpdated.message.length - 1];
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
+
+  async getMessages(uid: string, user_id: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const message = await db.collection("messages").aggregate([
+        {
+          $match: {
+            $and: [
+              { participants: { $exists: true } },
+              {
+                participants: {
+                  $all: [
+                    { $elemMatch: { $eq: new ObjectId(uid) } },
+                    { $elemMatch: { $eq: new ObjectId(user_id) } },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+
+        {
+          $project: {
+            message: {
+              $map: {
+                input: "$message",
+                as: "m",
+
+                in: {
+                  $mergeObjects: [
+                    {
+                      is_sender: {
+                        $cond: {
+                          if: { $eq: ["$$m.sender_id", new ObjectId(uid)] },
+                          then: true,
+                          else: false,
+                        },
+                      },
+                    },
+                    "$$m",
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            message: { $sortArray: { input: "$message", sortBy: { date: 1 } } },
+          },
+        },
+        { $unset: "_id" },
+        { $unset: "message.sender_id" },
+      ]);
+      const dataToReturn = await message.toArray();
+      return dataToReturn[0]["message"];
+    } catch (e: any) {
+      console.log(e);
+      throw new Error(e.message);
     }
   }
 }
