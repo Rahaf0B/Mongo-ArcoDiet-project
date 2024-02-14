@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import CUser from "../controller/user";
+import { Socket } from "socket.io";
 
 async function checkExistSession(
   req: Request,
@@ -51,4 +52,34 @@ async function authenticateUser(
   }
 }
 
-export default { authenticateUser, checkExistSession };
+
+async function authenticateUserWS(
+  ws: Socket,
+ 
+) {
+
+  let token = ws.handshake.headers.cookie as string;
+  if (!token && !token?.match("session_token")
+  ) {
+     ws.emit("missing","The session token is required");
+     ws.disconnect();
+  } else {
+
+    token = token.split("session_token=")[1];
+    const instance = CUser.getInstance();
+
+    try {
+      const sessionData = await instance.checkSession(token);
+      const dateNow = new Date();
+      if (!sessionData || dateNow > new Date(sessionData.expiration_date as string)) {
+         ws.emit("invalid","The session token is invalid");
+         ws.disconnect();
+      } else {
+        ws.data.uid = sessionData.user_id.toString();
+      }
+    } catch (e: any) {
+ws.disconnect();    }
+  }
+}
+
+export default { authenticateUser, checkExistSession ,authenticateUserWS};
