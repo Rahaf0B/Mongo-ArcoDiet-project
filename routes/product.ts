@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import validation from "../middleware/validation";
 import authorization from "../middleware/authorization";
+import CUser from "../controller/user";
 
 const router = Router();
 router.use(cookieParser());
@@ -27,6 +28,21 @@ router.get("/search_barcode/:barcode_number", async (req, res) => {
     const instance = CProduct.getInstance();
     const data = await instance.getProductByBarCode(
       Number(req.params.barcode_number)
+    );
+    res.status(200).send(data);
+  } catch (err) {
+    res.status(500).end();
+  }
+});
+
+
+router.get("/check-product-suitability/:product_id",  authorization.authenticateUser,
+async (req, res) => {
+  try {
+    const instance = CUser.getInstance();
+    const data = await instance.checkProductSuitability(
+      req.uid,
+      req.params.product_id
     );
     res.status(200).send(data);
   } catch (err) {
