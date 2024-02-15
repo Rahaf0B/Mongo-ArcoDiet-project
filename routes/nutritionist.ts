@@ -115,6 +115,21 @@ router.post(
   }
 );
 
+
+router.patch(
+  "/edit-nutritionist-general-info",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const data = await instance.editUserGeneralInfo(req.body, req.uid);
+      res.status(200).send(data);
+    } catch (err: any) {
+      res.status(500).end();
+    }
+  }
+);
+
 router.delete(
   "/remove-from-favorite/:nutritionist_id",
   authorization.authenticateUser,
