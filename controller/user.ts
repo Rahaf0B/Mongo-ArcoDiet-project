@@ -131,14 +131,13 @@ export default class CUser {
       throw new Error(e.message, { cause: e.cause });
     }
   }
-
-  async addHealthInfo(data: Partial<IUser>, user_id: ObjectId) {
+  async editUserInfo(
+    data: Partial<IUser>,
+    user_id: ObjectId,
+    projectionFields: any
+  ) {
     try {
       const db = await mongoConnection.getDB();
-      data.weight = data.weight ? new Double(data.weight as number) : undefined;
-      data.height = data.height ? new Double(data.height as number) : undefined;
-      //ANCHOR - Put the name or the ID of the allergies and diseases
-
       const updatedData = await db.collection("user").findOneAndUpdate(
         { _id: new ObjectId(user_id) },
         [
@@ -149,13 +148,7 @@ export default class CUser {
         {
           returnDocument: "after",
           ignoreUndefined: true,
-          projection: {
-            weight: 1,
-            height: 1,
-            _id: 0,
-            allergies: 1,
-            diseases: 1,
-          },
+          projection: projectionFields,
         }
       );
       return updatedData;
@@ -163,6 +156,46 @@ export default class CUser {
       throw new Error(e.message);
     }
   }
+  async addOrEditHealthInfo(data: Partial<IUser>, user_id: ObjectId) {
+    try {
+   
+      data.weight = data.weight ? new Double(data.weight as number) : undefined;
+      data.height = data.height ? new Double(data.height as number) : undefined;
+      //ANCHOR - Put the name or the ID of the allergies and diseases
+      const updatedData = await this.editUserInfo(data, user_id, {
+        weight: 1,
+        height: 1,
+        _id: 0,
+        allergies: 1,
+        diseases: 1,
+      });
+      return updatedData;
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
+async editUserGeneralInfo(data:Partial<IUser>, user_id: ObjectId) {
+  try {
+
+    const updatedData = await this.editUserInfo(data, user_id, {
+      first_name: 1,
+      last_name: 1,
+      _id: 0,
+      date_of_birth: 1,
+      gender: 1,
+      phone_number:1,
+      description:1,
+      specialization:1,
+      collage:1,
+      experience_years:1,
+      price:1,
+    });
+    return updatedData;
+} catch (e: any) {
+  throw new Error(e.message);
+}
+}
+
 
   async getUserInfo(userId: string, attributes?: any): Promise<IUser> {
     try {
@@ -455,13 +488,15 @@ export default class CUser {
         milk: "milk_existing",
       };
 
-      const userAllergies = userData.allergies ? userData?.allergies.map((value, index) => {
-        return allergies[value["name" as any]];
-      }) : [];
+      const userAllergies = userData.allergies
+        ? userData?.allergies.map((value, index) => {
+            return allergies[value["name" as any]];
+          })
+        : [];
 
-      const userDiseases = userData.diseases ? userData?.diseases.map(
-        (value, index) => value["name" as any]
-      ) : [];
+      const userDiseases = userData.diseases
+        ? userData?.diseases.map((value, index) => value["name" as any])
+        : [];
 
       const productData = await instance.getProductById(productId);
       for (let disease of userDiseases) {

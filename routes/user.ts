@@ -139,12 +139,27 @@ router.post(
 );
 
 router.patch(
-  "/add-health-info",
+  "/add-edit-health-info",
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
       const instance = CUser.getInstance();
-      const data = await instance.addHealthInfo(req.body, req.uid);
+      const data = await instance.addOrEditHealthInfo(req.body, req.uid);
+      res.status(200).send(data);
+    } catch (err: any) {
+      res.status(500).end();
+    }
+  }
+);
+
+
+router.patch(
+  "/edit-user-general-info",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const data = await instance.editUserGeneralInfo(req.body, req.uid);
       res.status(200).send(data);
     } catch (err: any) {
       res.status(500).end();
