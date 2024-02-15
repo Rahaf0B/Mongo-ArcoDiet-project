@@ -4,9 +4,10 @@ import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ObjectId } from "bson";
 import { Db, Double } from "mongodb";
-import { IMessage, ISession, IUser } from "../utlis/interfaces";
+import { IMessage, IProduct, ISession, IUser } from "../utlis/interfaces";
 import emailSender from "../utlis/emailSender";
 import dateHandler from "../utlis/dateHandler";
+import CProduct from "./product";
 
 export default class CUser {
   private static instance: CUser;
@@ -199,7 +200,7 @@ export default class CUser {
     }
   }
 
-  async getUserHealthInfo(userId: string) {
+  async getUserHealthInfo(userId: string): Promise<IUser> {
     try {
       const data = await this.getUserInfo(userId, {
         weight: 1,
@@ -434,6 +435,57 @@ export default class CUser {
       return dataToReturn[0]["message"];
     } catch (e: any) {
       console.log(e);
+      throw new Error(e.message);
+    }
+  }
+
+  async checkProductSuitability(uid: string, productId: string) {
+    try {
+      const instance = CProduct.getInstance();
+      const userData = await this.getUserHealthInfo(uid);
+      const allergies: { [key: string]: string } = {
+        soy: "soybeans_existing",
+        "wheat derivatives": "wheat_derivatives_existing",
+        pistachio: "pistachio_existing",
+        peanut: "peanut_existing",
+        nuts: "nuts_existing",
+        seafood: "sea_components_existing",
+        fish: "fish_existing",
+        egg: "egg_existing",
+        milk: "milk_existing",
+      };
+
+      const userAllergies = userData.allergies ? userData?.allergies.map((value, index) => {
+        return allergies[value["name" as any]];
+      }) : [];
+
+      const userDiseases = userData.diseases ? userData?.diseases.map(
+        (value, index) => value["name" as any]
+      ) : [];
+
+      const productData = await instance.getProductById(productId);
+      for (let disease of userDiseases) {
+        if (
+          (disease == "liver" ||
+            disease == "hypertension" ||
+            disease == "kidney") &&
+          productData?.sodium_value > 140
+        ) {
+          return false;
+        }
+        if (disease == "diabetes" && productData?.sugar_value > 5) {
+          return false;
+        }
+      }
+
+      for (let allergy of userAllergies) {
+        if (allergy in productData) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (e: any) {
       throw new Error(e.message);
     }
   }
