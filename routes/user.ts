@@ -169,6 +169,7 @@ router.post(
 
 router.patch(
   "/add-edit-health-info",
+  validation.HealthInfoValidation,
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
@@ -183,6 +184,7 @@ router.patch(
 
 router.patch(
   "/edit-user-general-info",
+  validation.editUserGeneralInfoValidation,
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
@@ -267,6 +269,7 @@ router.patch(
 
 router.patch(
   "/ncp",
+  validation.NCPValidation,
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {

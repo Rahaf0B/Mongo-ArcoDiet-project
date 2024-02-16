@@ -11,7 +11,6 @@ router.use(cookieParser());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
 
-
 router.get("/search_barcode/:barcode_number", async (req, res) => {
   try {
     const instance = CProduct.getInstance();
@@ -24,21 +23,24 @@ router.get("/search_barcode/:barcode_number", async (req, res) => {
   }
 });
 
+router.get(
+  "/check-product-suitability/:id",
+  authorization.authenticateUser,
+  validation.IdValidation,
 
-router.get("/check-product-suitability/:product_id",  authorization.authenticateUser,
-async (req, res) => {
-  try {
-    const instance = CUser.getInstance();
-    const data = await instance.checkProductSuitability(
-      req.uid,
-      req.params.product_id
-    );
-    res.status(200).send(data);
-  } catch (err) {
-    res.status(500).end();
+  async (req, res) => {
+    try {
+      const instance = CUser.getInstance();
+      const data = await instance.checkProductSuitability(
+        req.uid,
+        req.params.id
+      );
+      res.status(200).send(data);
+    } catch (err) {
+      res.status(500).end();
+    }
   }
-});
-
+);
 
 router.get(
   "/favorite",
@@ -54,43 +56,42 @@ router.get(
   }
 );
 
-router.get("/:product_id", async (req, res) => {
+router.get("/:id", validation.IdValidation, async (req, res) => {
   try {
     const instance = CProduct.getInstance();
-    const data = await instance.getProductById(
-      req.params.product_id.toString()
-    );
+    const data = await instance.getProductById(req.params.id.toString());
     res.status(200).send(data);
   } catch (err) {
     res.status(500).end();
   }
 });
 
-
-router.get("/", async (req, res) => {
-  try {
-    const instance = CProduct.getInstance();
-    const data = await instance.getAllProducts(
-      Number(req.query.number_of_items),
-      req.query.product_id ? req.query.product_id.toString() : undefined
-    );
-    res.status(200).send(data);
-  } catch (err) {
-    res.status(500).end();
-  }
-});
-
-
-router.post(
-  "/favorite/:product_id",
-  authorization.authenticateUser,
+router.get(
+  "/",
+  validation.IdQueryValidation,
+  validation.NumberOfItemsValidation,
   async (req, res) => {
     try {
       const instance = CProduct.getInstance();
-      const data = await instance.addProductToFavorite(
-        req.uid,
-        req.params.product_id
+      const data = await instance.getAllProducts(
+        Number(req.query.number_of_items),
+        req.query.id ? req.query.id.toString() : undefined
       );
+      res.status(200).send(data);
+    } catch (err) {
+      res.status(500).end();
+    }
+  }
+);
+
+router.post(
+  "/favorite/:id",
+  authorization.authenticateUser,
+  validation.IdValidation,
+  async (req, res) => {
+    try {
+      const instance = CProduct.getInstance();
+      const data = await instance.addProductToFavorite(req.uid, req.params.id);
       res.status(200).send({ msg: "OK" });
     } catch (err: any) {
       if (err?.cause == "not-found") {
@@ -101,14 +102,16 @@ router.post(
 );
 
 router.delete(
-  "/favorite/:product_id",
+  "/favorite/:id",
+  validation.IdValidation,
   authorization.authenticateUser,
+
   async (req, res) => {
     try {
       const instance = CProduct.getInstance();
       const data = await instance.removeProductFromFavorite(
         req.uid,
-        req.params.product_id
+        req.params.id
       );
       res.status(200).send({ msg: "OK" });
     } catch (err) {

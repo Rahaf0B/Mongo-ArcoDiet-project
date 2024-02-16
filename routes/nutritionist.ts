@@ -28,6 +28,7 @@ router.get(
 router.get(
   "/high-rating-nutritionists",
   authorization.authenticateUser,
+  validation.NumberOfItemsValidation,
   async (req: Request, res: Response) => {
     try {
       const instance = CNutritionist.getInstance();
@@ -42,13 +43,14 @@ router.get(
 );
 
 router.get(
-  "/:nutritionist_id",
+  "/:id",
   authorization.authenticateUser,
+  validation.IdValidation,
   async (req: Request, res: Response) => {
     try {
       const instance = CNutritionist.getInstance();
       const data = await instance.getOneNutritionist(
-        req.params.nutritionist_id.toString()
+        req.params.id.toString()
       );
       res.status(200).send(data);
     } catch (err: any) {
@@ -60,13 +62,15 @@ router.get(
 router.get(
   "/",
   authorization.authenticateUser,
+  validation.NumberOfItemsValidation,
+  validation.IdQueryValidation,
   async (req: Request, res: Response) => {
     try {
       const instance = CNutritionist.getInstance();
       const data = await instance.getNutritionists(
         Number(req.query.number_of_items),
-        req.query.nutritionist_id
-          ? req.query.nutritionist_id.toString()
+        req.query.id
+          ? req.query.id.toString()
           : undefined
       );
       res.status(200).send(data);
@@ -77,14 +81,15 @@ router.get(
 );
 
 router.post(
-  "/favorite/:nutritionist_id",
+  "/favorite/:id",
   authorization.authenticateUser,
+  validation.IdValidation,
   async (req, res) => {
     try {
       const instance = CNutritionist.getInstance();
       const data = await instance.addNutritionistToFavorite(
         req.uid,
-        req.params.nutritionist_id
+        req.params.id
       );
       res.status(200).send({ msg: "OK" });
     } catch (err: any) {
@@ -96,14 +101,16 @@ router.post(
 );
 
 router.post(
-  "/add-rating/:nutritionist_id",
+  "/add-rating/:id",
   authorization.authenticateUser,
+  validation.IdValidation,
+  validation.ratingValidation,
   async (req, res) => {
     try {
       const instance = CNutritionist.getInstance();
       const data = await instance.addRatingToNutritionist(
         req.uid,
-        req.params.nutritionist_id,
+        req.params.id,
         req.body.rating
       );
       res.status(200).send({ msg: data });
@@ -119,6 +126,7 @@ router.post(
 router.patch(
   "/edit-nutritionist-general-info",
   authorization.authenticateUser,
+  validation.editNutritionistGeneralInfoValidation,
   async (req: Request, res: Response) => {
     try {
       const instance = CUser.getInstance();
@@ -131,14 +139,15 @@ router.patch(
 );
 
 router.delete(
-  "/favorite/:nutritionist_id",
+  "/favorite/:id",
   authorization.authenticateUser,
+  validation.IdValidation,
   async (req, res) => {
     try {
       const instance = CNutritionist.getInstance();
       const data = await instance.removeNutritionistFromFavorite(
         req.uid,
-        req.params.nutritionist_id
+        req.params.id
       );
       res.status(200).send({ msg: "OK" });
     } catch (err) {
