@@ -4,13 +4,18 @@ import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ObjectId } from "bson";
 import { Db, Double } from "mongodb";
-import { IMessage, IProduct, ISession, IUser } from "../utlis/interfaces";
+import {
+  IMessage,
+  INCPForm,
+  IProduct,
+  ISession,
+  IUser,
+} from "../utlis/interfaces";
 import emailSender from "../utlis/emailSender";
 import dateHandler from "../utlis/dateHandler";
 import CProduct from "./product";
-import {
-  cloudinaryImageDestroyMethod,
-} from "../middleware/imageuploader";
+import { cloudinaryImageDestroyMethod } from "../middleware/imageuploader";
+import { AsyncResource } from "async_hooks";
 
 export default class CUser {
   private static instance: CUser;
@@ -585,6 +590,44 @@ export default class CUser {
       );
 
       return userImage;
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
+  }
+
+  async updateNCPForm(userId: string, ncpData: INCPForm): Promise<boolean> {
+    try {
+      const db = await mongoConnection.getDB();
+      const ncp = await db.collection("user").updateOne(
+        {
+          _id: new ObjectId(userId),
+        },
+        { $addToSet: { ncp: { $each: ncpData } } },
+        { upsert: true }
+      );
+
+      return true;
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
+  }
+
+  async getNCPForm(userId: string): Promise<INCPForm[]> {
+    try {
+      const db = await mongoConnection.getDB();
+      const ncp = await db.collection("user").findOne(
+        {
+          _id: new ObjectId(userId),
+        },
+        
+        { 
+          projection: {
+            _id:0,
+            ncp: 1,
+          },
+        }
+      );
+      return  ncp?.ncp ? ncp?.ncp as unknown as INCPForm[] : [];
     } catch (error: any) {
       throw new Error(error.message);
     }
