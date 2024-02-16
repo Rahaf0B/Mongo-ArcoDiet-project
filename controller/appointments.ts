@@ -60,13 +60,13 @@ export default class CAppointment {
     }
   }
 
-  async getNutritionistAppointments(uid: string) {
+  async getNutritionistAppointments(nutritionist_id: string, date: string) {
     try {
-      const db = await mongoConnection.getDB();
-      const data = await db
-        .collection("appointment")
-        .find({ nutritionist_id: new ObjectId(uid) });
-      return data.toArray();
+      const data = await this.getNutritionistAppointmentsByDate(
+        nutritionist_id,
+        date
+      );
+      return data;
     } catch (e: any) {
       throw new Error(e);
     }
@@ -215,9 +215,10 @@ export default class CAppointment {
     }
   }
 
-  async getNutritionistReservedAppointmentsByDate(
+  async getNutritionistAppointmentsByDate(
     nutritionist_id: string,
-    date: string
+    date: string,
+    available?: boolean
   ) {
     try {
       const db = await mongoConnection.getDB();
@@ -234,21 +235,53 @@ export default class CAppointment {
         {
           $match: {
             $and: [
-              { "appointments.available": false },
+              available ? { "appointments.available": false } : {},
               { "appointments.date": new Date(date) },
             ],
           },
         },
         {
+          $group: {
+            _id: "$_id",
+            nutritionist_id: { $first: "$nutritionist_id" },
+            appointments: {
+              $push: {
+                date: "$appointments.date",
+                starting_time: "$appointments.starting_time",
+                ending_time: "$appointments.ending_time",
+                available: "$appointments.available",
+                user_id: "$appointments.user_id",
+              },
+            },
+          },
+        },
+        {
           $project: {
-            "appointments.available": 0,
             "appointments.user_id": 0,
+            nutritionist_id: 0,
+            _id: 0,
           },
         },
       ]);
       return appointment.toArray();
     } catch (e: any) {
       throw new Error(e.message, { cause: e?.cause });
+    }
+  }
+
+  async getNutritionistReservedAppointmentsByDate(
+    nutritionist_id: string,
+    date: string
+  ) {
+    try {
+      const data = await this.getNutritionistAppointmentsByDate(
+        nutritionist_id,
+        date,
+        false
+      );
+      return data;
+    } catch (e: any) {
+      throw new Error(e.message);
     }
   }
 
