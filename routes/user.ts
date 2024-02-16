@@ -11,7 +11,6 @@ router.use(cookieParser());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
 
-
 router.get(
   "/general-info",
   authorization.authenticateUser,
@@ -68,6 +67,19 @@ router.get(
   }
 );
 
+router.get(
+  "/ncp",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const data = await instance.getNCPForm(req.uid);
+      res.status(200).send(data);
+    } catch (e: any) {
+      res.status(500).send();
+    }
+  }
+);
 
 router.post(
   "/register",
@@ -245,7 +257,7 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const instance = CUser.getInstance();
-      const data=await instance.updateUserImage(req.files, req.uid);
+      const data = await instance.updateUserImage(req.files, req.uid);
       res.status(200).send(data);
     } catch (e: any) {
       res.status(500).send();
@@ -253,6 +265,19 @@ router.patch(
   }
 );
 
+router.patch(
+  "/ncp",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const data = await instance.updateNCPForm(req.uid, req.body);
+      res.status(200).send(data);
+    } catch (e: any) {
+      res.status(500).send();
+    }
+  }
+);
 router.delete(
   "/delete-image",
   authorization.authenticateUser,

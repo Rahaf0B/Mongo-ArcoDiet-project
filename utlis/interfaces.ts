@@ -91,3 +91,8 @@ export interface IMessage {
   date?: string;
   time?: string;
 }
+
+export interface INCPForm {
+  question: string;
+  answer: string;
+}
