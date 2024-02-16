@@ -12,24 +12,6 @@ router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
 
 
-/*TODO 
-
-
-
-**add get allergies and dissese
-**add product to favorites and remove it 
-** get favourite product and nutrtionest
-
-**helpAndSupport
-** for NCP:
-*** addAnswer
-*** addQuestion
-**add and get User NCP Info
-
-
-
-*/
-
 router.get(
   "/general-info",
   authorization.authenticateUser,
