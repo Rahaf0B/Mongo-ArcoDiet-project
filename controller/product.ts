@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import mongoConnection from "../config/mongo.config";
 import { IProduct } from "../utlis/interfaces";
+import { appCache, getCacheValue } from "../utlis/appCache";
 
 export default class CProduct {
   private static instance: CProduct;
@@ -36,10 +37,19 @@ export default class CProduct {
 
   async getProductById(productId: string): Promise<IProduct> {
     try {
+      let productCache = getCacheValue("pro") as any;
+      if (productCache) {
+        if (productCache[productId]) {
+          return productCache[productId];
+        }
+      }
       const db = await mongoConnection.getDB();
       const data = await db
         .collection("products")
         .findOne({ _id: new ObjectId(productId) });
+        productCache=productCache ? productCache : {};
+      productCache[data["_id"].toString()] = data;
+      appCache.set("pro", productCache);
       return data as unknown as IProduct;
     } catch (e: any) {
       throw new Error(e.message);

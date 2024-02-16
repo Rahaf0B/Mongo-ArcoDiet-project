@@ -1,4 +1,4 @@
-import { appCache } from "../config/appCache";
+import { appCache, getCacheValue } from "../config/appCache";
 import mongoConnection from "../config/mongo.config";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
@@ -49,8 +49,8 @@ export default class CAdmin {
   async addAllergiesData(allergies: IAllergies): Promise<boolean> {
     try {
       const db = await mongoConnection.getDB();
-
       const data = await db.collection("allergies").insertOne(allergies);
+      appCache.del("allergies");
       return true;
     } catch (e: any) {
       throw new Error(e.message, { cause: e.code });
@@ -60,8 +60,8 @@ export default class CAdmin {
   async addDiseasesData(diseases: IDiseases): Promise<boolean> {
     try {
       const db = await mongoConnection.getDB();
-
       const data = await db.collection("diseases").insertOne(diseases);
+      appCache.del("diseases");
       return true;
     } catch (e: any) {
       throw new Error(e.message, { cause: e.code });
@@ -71,9 +71,45 @@ export default class CAdmin {
   async addProductData(product: IProduct): Promise<boolean> {
     try {
       const db = await mongoConnection.getDB();
-
       const data = await db.collection("products").insertOne(product);
       return true;
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e.code });
+    }
+  }
+
+  async getAllergiesData(): Promise<IAllergies[]> {
+    try {
+      let allergies = getCacheValue("allergies");
+
+      if (allergies) {
+        return allergies as IAllergies[];
+      } else {
+        const db = await mongoConnection.getDB();
+
+        const data = await db.collection("allergies").find();
+        allergies = await data.toArray();
+        appCache.set("allergies", allergies);
+        return allergies as IAllergies[];
+      }
+    } catch (e: any) {
+      throw new Error(e.message, { cause: e.code });
+    }
+  }
+
+  async getDiseasesData(): Promise<IDiseases[]> {
+    try {
+      let diseases = getCacheValue("diseases");
+
+      if (diseases) {
+        return diseases as IDiseases[];
+      } else {
+        const db = await mongoConnection.getDB();
+        const data = await db.collection("diseases").find();
+        diseases = await data.toArray();
+        appCache.set("diseases", diseases);
+        return diseases as IDiseases[];
+      }
     } catch (e: any) {
       throw new Error(e.message, { cause: e.code });
     }
