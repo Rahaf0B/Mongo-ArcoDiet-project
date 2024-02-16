@@ -10,7 +10,6 @@ import dateHandler from "../utlis/dateHandler";
 import CProduct from "./product";
 import {
   cloudinaryImageDestroyMethod,
-  cloudinaryImageUploadMethod,
 } from "../middleware/imageuploader";
 
 export default class CUser {

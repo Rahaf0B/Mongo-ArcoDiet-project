@@ -12,7 +12,7 @@ router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
 
 router.get(
-  "/nutritionist-favorites",
+  "/favorite",
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
@@ -77,7 +77,7 @@ router.get(
 );
 
 router.post(
-  "/add-to-favorite/:nutritionist_id",
+  "/favorite/:nutritionist_id",
   authorization.authenticateUser,
   async (req, res) => {
     try {
@@ -131,7 +131,7 @@ router.patch(
 );
 
 router.delete(
-  "/remove-from-favorite/:nutritionist_id",
+  "/favorite/:nutritionist_id",
   authorization.authenticateUser,
   async (req, res) => {
     try {

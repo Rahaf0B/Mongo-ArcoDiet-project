@@ -57,4 +57,91 @@ export default class CProduct {
       throw new Error(e.message);
     }
   }
+
+  async addProductToFavorite(uid: string, product_id: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const productInfo = await this.getProductById(product_id);
+      if (productInfo) {
+        const data = await db.collection("product_favorite").updateOne(
+          { user_id: new ObjectId(uid) },
+          {
+            $addToSet: {
+              products: {
+                product_id: new ObjectId(product_id),
+              },
+            },
+          },
+          { upsert: true }
+        );
+        return true;
+      } else {
+        throw new Error("There is no Product with this ID", {
+          cause: "not-found",
+        });
+      }
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error?.cause });
+    }
+  }
+
+  async removeProductFromFavorite(uid: string, product_id: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const data = await db.collection("product_favorite").updateOne(
+        { user_id: new ObjectId(uid) },
+        {
+          $pull: {
+            products: {
+              product_id: new ObjectId(product_id),
+            },
+          },
+        }
+      );
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error?.cause });
+    }
+  }
+
+  async getProductsFromFavorite(uid: string): Promise<any> {
+    try {
+      const db = await mongoConnection.getDB();
+      const data = await db.collection("product_favorite").aggregate([
+        { $match: { user_id: new ObjectId(uid) } },
+        {
+          $unwind: "$products",
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "products.product_id",
+            foreignField: "_id",
+            as: "productsInfo",
+          },
+        },
+        {
+          $unwind: "$productsInfo",
+        },
+        {
+          $addFields: {
+            product_id: "$productsInfo._id",
+            name_arabic: "$productsInfo.name_arabic",
+            name_english: "$productsInfo.name_english",
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            user_id: 0,
+            products: 0,
+            productsInfo: 0,
+          },
+        },
+      ]);
+
+      return data ? data?.toArray() : [];
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error?.cause });
+    }
+  }
 }
