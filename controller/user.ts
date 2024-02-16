@@ -83,6 +83,17 @@ export default class CUser {
       throw new Error(e.message, { cause: e?.cause });
     }
   }
+
+
+async clearSession(user_id: string) {
+try{
+  const db = await mongoConnection.getDB();
+  const data = await db.collection("session").deleteMany({user_id: new ObjectId(user_id)});
+
+}catch(e:any){
+throw new Error(e.message);
+}
+}
   async CreateUser(data: IUser, userType: number): Promise<string> {
     try {
       switch (userType) {

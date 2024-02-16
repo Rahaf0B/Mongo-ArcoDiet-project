@@ -7,13 +7,12 @@ async function checkExistSession(
   res: Response,
   next: NextFunction
 ) {
-  let token = req.headers.authorization as string;
+  const token = req.cookies["session_token"] as string;
 
   if (!token) {
     req.uid = "";
     next();
   } else {
-    token = token?.split(" ")[1];
     try {
       const returnreq = await authenticateUser(req, res, next);
       return returnreq;
@@ -28,12 +27,11 @@ async function authenticateUser(
   res: Response,
   next: NextFunction
 ) {
-  let token = req.headers.authorization as string;
+  const token = req.cookies["session_token"] as string;
 
   if (!token) {
     return res.status(401).send("The session token is required");
   } else {
-    token = token?.split(" ")[1];
 
     const instance = CUser.getInstance();
 

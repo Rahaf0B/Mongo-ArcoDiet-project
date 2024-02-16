@@ -88,7 +88,8 @@ router.post(
     try {
       const instance = CUser.getInstance();
       const token = await instance.CreateUser(req.body, 0);
-      res.status(200).setHeader("Authorization", token).send({ msg: "ok" });
+      res.status(200).cookie("session_token", token)
+      .send({ msg: "ok" });
     } catch (err: any) {
       if (err?.cause == 11000) {
         res.status(400).send("Email is already registered");
@@ -104,7 +105,7 @@ router.post(
     try {
       const instance = CUser.getInstance();
       const token = await instance.CreateUser(req.body, 1);
-      res.status(200).setHeader("Authorization", token).send({ msg: "ok" });
+      res.status(200).cookie("session_token", token).send({ msg: "ok" });
     } catch (err: any) {
       if (err?.cause == 11000) {
         res.status(400).send("Email is already registered");
@@ -299,4 +300,22 @@ router.delete(
   }
 );
 
+
+router.post(
+  "/logout",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const dataInfo = await instance.clearSession(req.uid);
+      res.status(200).cookie("session_token", "").send();
+    } catch (e: any) {
+      if (e?.cause == "Validation Error") {
+        res.status(400).send(e.message);
+      } else {
+        res.status(500).send();
+      }
+    }
+  }
+);
 export default router;
