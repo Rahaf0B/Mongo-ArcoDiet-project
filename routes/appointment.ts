@@ -15,6 +15,7 @@ router.post(
   "/",
   authorization.authenticateUser,
   permission.nutritionistPermission,
+  validation.addOrDeleteAppointmentValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
@@ -30,6 +31,7 @@ router.get(
   "/",
   authorization.authenticateUser,
   permission.nutritionistPermission,
+  validation.dateValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
@@ -42,13 +44,15 @@ router.get(
 );
 
 router.get(
-  "/nutritionist-appointment/:nutritionist_id",
+  "/nutritionist-appointment/:id",
   authorization.authenticateUser,
+  validation.dateValidation,
+  validation.IdValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
       const data = await instance.getNutritionistAppointments(
-        req.params.nutritionist_id as string,
+        req.params.id as string,
         req.query.date as string
       );
       res.send(data);
@@ -62,6 +66,7 @@ router.get(
   "/nutritionist-appointment-date",
   authorization.authenticateUser,
   permission.nutritionistPermission,
+  validation.dateValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
@@ -95,6 +100,7 @@ router.get(
 router.get(
   "/user-appointment-date",
   authorization.authenticateUser,
+  validation.dateValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
@@ -128,6 +134,7 @@ router.patch(
   "/delete-appointment",
   authorization.authenticateUser,
   permission.nutritionistPermission,
+  validation.addOrDeleteAppointmentValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
@@ -142,7 +149,7 @@ router.patch(
 router.post(
   "/reserve-appointment",
   authorization.authenticateUser,
-
+  validation.reserveAppointmentValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();

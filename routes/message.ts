@@ -15,12 +15,13 @@ router.use(bodyParser.urlencoded({ extended: false }));
 
 
 router.get(
-    "/:nutritionist_id",
+    "/:id",
     authorization.authenticateUser,
+    validation.IdValidation,
     async (req: Request, res: Response) => {
       try {
         const instance = CUser.getInstance();
-        const data = await instance.getMessages(req.uid,req.params.nutritionist_id);
+        const data = await instance.getMessages(req.uid,req.params.id);
         res.status(200).send(data);
       } catch (err: any) {
         res.status(500).end();
