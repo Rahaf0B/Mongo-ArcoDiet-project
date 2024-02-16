@@ -4,11 +4,14 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import validation from "../middleware/validation";
 import authorization from "../middleware/authorization";
+import { upload } from "../middleware/imageuploader";
 
 const router = Router();
 router.use(cookieParser());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
+
+
 
 router.get(
   "/general-info",
@@ -51,6 +54,21 @@ router.get(
     }
   }
 );
+
+router.get(
+  "/user-image",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const data = await instance.getUserImage(req.uid);
+      res.status(200).send(data);
+    } catch (err: any) {
+      res.status(500).end();
+    }
+  }
+);
+
 
 router.post(
   "/register",
@@ -152,7 +170,6 @@ router.patch(
   }
 );
 
-
 router.patch(
   "/edit-user-general-info",
   authorization.authenticateUser,
@@ -214,6 +231,39 @@ router.patch(
       res.status(200).end();
     } catch (e: any) {
       if (e?.cause == "Validation Error") {
+        res.status(400).send(e.message);
+      } else {
+        res.status(500).send();
+      }
+    }
+  }
+);
+
+router.patch(
+  "/edit-image",
+  authorization.authenticateUser,
+  upload("user").array("images"),
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      const data=await instance.updateUserImage(req.files, req.uid);
+      res.status(200).send(data);
+    } catch (e: any) {
+      res.status(500).send();
+    }
+  }
+);
+
+router.delete(
+  "/delete-image",
+  authorization.authenticateUser,
+  async (req: Request, res: Response) => {
+    try {
+      const instance = CUser.getInstance();
+      await instance.deleteUserImage(req.uid);
+      res.status(200).end();
+    } catch (e: any) {
+      if (e?.cause == "not-found") {
         res.status(400).send(e.message);
       } else {
         res.status(500).send();

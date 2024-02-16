@@ -33,7 +33,7 @@ router.get(
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
-      const data = await instance.getNutritionistAppointments(req.uid);
+      const data = await instance.getNutritionistAppointments(req.uid,req.query.date as string);
       res.send(data);
     } catch (err) {
       res.status(500).end();
@@ -48,7 +48,8 @@ router.get(
     try {
       const instance = CAppointment.getInstance();
       const data = await instance.getNutritionistAppointments(
-        req.params.nutritionist_id.toString()
+        req.params.nutritionist_id as string,
+        req.query.date as string
       );
       res.send(data);
     } catch (err) {

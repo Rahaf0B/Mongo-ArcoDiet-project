@@ -8,6 +8,10 @@ import { IMessage, IProduct, ISession, IUser } from "../utlis/interfaces";
 import emailSender from "../utlis/emailSender";
 import dateHandler from "../utlis/dateHandler";
 import CProduct from "./product";
+import {
+  cloudinaryImageDestroyMethod,
+  cloudinaryImageUploadMethod,
+} from "../middleware/imageuploader";
 
 export default class CUser {
   private static instance: CUser;
@@ -158,7 +162,6 @@ export default class CUser {
   }
   async addOrEditHealthInfo(data: Partial<IUser>, user_id: ObjectId) {
     try {
-   
       data.weight = data.weight ? new Double(data.weight as number) : undefined;
       data.height = data.height ? new Double(data.height as number) : undefined;
       //ANCHOR - Put the name or the ID of the allergies and diseases
@@ -174,28 +177,26 @@ export default class CUser {
       throw new Error(e.message);
     }
   }
-async editUserGeneralInfo(data:Partial<IUser>, user_id: ObjectId) {
-  try {
-
-    const updatedData = await this.editUserInfo(data, user_id, {
-      first_name: 1,
-      last_name: 1,
-      _id: 0,
-      date_of_birth: 1,
-      gender: 1,
-      phone_number:1,
-      description:1,
-      specialization:1,
-      collage:1,
-      experience_years:1,
-      price:1,
-    });
-    return updatedData;
-} catch (e: any) {
-  throw new Error(e.message);
-}
-}
-
+  async editUserGeneralInfo(data: Partial<IUser>, user_id: ObjectId) {
+    try {
+      const updatedData = await this.editUserInfo(data, user_id, {
+        first_name: 1,
+        last_name: 1,
+        _id: 0,
+        date_of_birth: 1,
+        gender: 1,
+        phone_number: 1,
+        description: 1,
+        specialization: 1,
+        collage: 1,
+        experience_years: 1,
+        price: 1,
+      });
+      return updatedData;
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
 
   async getUserInfo(userId: string, attributes?: any): Promise<IUser> {
     try {
@@ -467,7 +468,6 @@ async editUserGeneralInfo(data:Partial<IUser>, user_id: ObjectId) {
       const dataToReturn = await message.toArray();
       return dataToReturn[0]["message"];
     } catch (e: any) {
-      console.log(e);
       throw new Error(e.message);
     }
   }
@@ -522,6 +522,72 @@ async editUserGeneralInfo(data:Partial<IUser>, user_id: ObjectId) {
       return true;
     } catch (e: any) {
       throw new Error(e.message);
+    }
+  }
+
+  async updateUserImage(imageFile: any, userId: string): Promise<string> {
+    const { path } = imageFile[0];
+
+    try {
+      const db = await mongoConnection.getDB();
+      const message = await db.collection("user").updateOne(
+        {
+          _id: new ObjectId(userId),
+        },
+        { $set: { profile_pic_url: path } }
+      );
+
+      return path;
+    } catch (error: any) {
+      await cloudinaryImageDestroyMethod(path);
+
+      throw new Error(error.message);
+    }
+  }
+
+  async deleteUserImage(userId: string): Promise<boolean> {
+    try {
+      const db = await mongoConnection.getDB();
+      const userImage = await db.collection("user").findOne(
+        { _id: new ObjectId(userId) },
+        {
+          projection: {
+            profile_pic_url: 1,
+          },
+        }
+      );
+      if (userImage) {
+        await cloudinaryImageDestroyMethod(userImage.profile_pic_url);
+        const imageDeleted = await db
+          .collection("user")
+          .updateOne(
+            { _id: new ObjectId(userId) },
+            { $unset: { profile_pic_url: "" } }
+          );
+        return true;
+      } else
+        throw new Error("No Image Found For This User", { cause: "not-found" });
+    } catch (error: any) {
+      throw new Error(error.message, { cause: error?.cause });
+    }
+  }
+
+  async getUserImage(userId: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const userImage = await db.collection("user").findOne(
+        { _id: new ObjectId(userId) },
+        {
+          projection: {
+            profile_pic_url: 1,
+            _id: 0,
+          },
+        }
+      );
+
+      return userImage;
+    } catch (error: any) {
+      throw new Error(error.message);
     }
   }
 }
