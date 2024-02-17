@@ -29,11 +29,8 @@ export default class CProduct {
           limit: ItemNumber,
           sort: { _id: 1 },
         });
-      console.log(await data.toArray()); 
       return data.toArray() as unknown as IProduct[];
-
     } catch (e: any) {
-      console.error(e);
       throw new Error(e.message);
     }
   }
