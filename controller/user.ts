@@ -392,7 +392,7 @@ export default class CUser {
   async saveMessage(uid: string, user_id: string, message: string) {
     try {
       const db = await mongoConnection.getDB();
-      const messageUpdated = await db.collection("messages").findOneAndUpdate(
+      const messageToUpdate = await db.collection("messages").updateOne(
         {
           $and: [
             { participants: { $exists: true } },
@@ -419,8 +419,25 @@ export default class CUser {
           },
         },
 
-        { upsert: true, returnDocument: "after" }
+        { upsert: true }
       );
+
+
+      const messageUpdated = await db.collection("messages").findOne(
+        {
+          $and: [
+            { participants: { $exists: true } },
+            {
+              participants: {
+                $all: [
+                  { $elemMatch: { $eq: new ObjectId(uid) } },
+                  { $elemMatch: { $eq: new ObjectId(user_id) } },
+                ],
+              },
+            },
+          ],
+        },
+      )
 
       return messageUpdated.message[messageUpdated.message.length - 1];
     } catch (e: any) {

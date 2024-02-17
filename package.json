@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "rimraf build && npx tsc && cp package.json ./build/",
+    "build": "rimraf build && npx tsc",
     "start": "tsx watch index",
     "dev": " concurrently \"npx tsc -w\" \"tsx watch index\"  ",
     "test": "echo \"Error: no test specified\" && exit 1"
