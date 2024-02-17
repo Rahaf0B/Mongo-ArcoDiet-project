@@ -1,4 +1,4 @@
-import { object, string, number, date, mixed, lazy, array } from "yup";
+import { object, string, number, date, mixed, lazy, array, boolean } from "yup";
 import { Request, Response, NextFunction, query } from "express";
 import { parse } from "date-fns";
 import "yup-phone-lite";
@@ -287,6 +287,35 @@ async function forgetPassValidation(
   }
 }
 
+async function ImageValidation(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let imageSchema = array()
+    .of(
+      object().shape({
+        mimetype: string()
+          .required("Image mimetype is required")
+          .matches(
+            /^image\/(jpeg|jpg)$/,
+            "Invalid image format the format allowed are jpg and jpeg"
+          ),
+      })
+    )
+    .required("At least one image is required");
+
+  try {
+    const response = await imageSchema.validate(req.files, {
+      abortEarly: false,
+    });
+
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
+}
+
 async function addAllergiesDiseasesValidation(
   req: Request,
   res: Response,
@@ -496,13 +525,19 @@ async function addOrDeleteAppointmentValidation(
       .strict(true)
       .noUnknown(true),
   });
+
+  try {
+    const response = await userSchema.validate({ body: req.body });
+    next();
+  } catch (e: any) {
+    return res.status(400).send(e.message);
+  }
 }
 
 async function dateValidation(req: Request, res: Response, next: NextFunction) {
   let userSchema = object({
     query: object({
       date: string()
-        .strict(true)
         .typeError("The date Should be String")
         .required("The date is required")
         .matches(
@@ -627,8 +662,7 @@ async function NumberOfItemsValidation(
   let userSchema = object({
     query: object({
       number_of_items: number()
-        .strict(true)
-        .typeError("The number_of_items Should be String")
+        .typeError("The number_of_items Should be number")
         .required("The number_of_items is required")
         .min(1, "number_of_items should be not less than 1")
         .nullable(),
@@ -654,10 +688,8 @@ async function IdQueryValidation(
   let userSchema = object({
     query: object({
       id: string()
-        .strict(true)
         .typeError("The id Should be String")
-        .required("The id is required")
-        .test("Invalid id", (value) => ObjectId.isValid(value))
+        .test("Invalid id", (value) => value ? ObjectId.isValid(value) : true)
         .nullable(),
     })
       .required("The id is required")
@@ -685,16 +717,18 @@ async function ratingValidation(
         .round("floor")
         .typeError("The rating Should be number")
         .required("The rating is required")
+        .min(0,"the rating value must be equal greater than zero")
+        .max(5,"the rating value must be equal or less than five")
         .nullable(),
     })
-      .required("The rating is required")
+      .required("The body is required")
       .nullable()
       .noUnknown(true)
       .strict(true),
   });
 
   try {
-    const response = await userSchema.validate({ params: req.params });
+    const response = await userSchema.validate({ body: req.body });
     next();
   } catch (e: any) {
     return res.status(400).send(e.message);
@@ -770,7 +804,7 @@ async function editNutritionistGeneralInfoValidation(
         .max(50, "the experience_years should be greater than 50")
         .nullable(),
     })
-      .required("The data are required")
+      .required("The body is required")
       .nullable()
       .strict(true)
       .noUnknown(true),
@@ -797,7 +831,7 @@ async function barCodeValidation(
         .required("The barcode_number is required")
         .nullable(),
     })
-      .required("The barcode_number is required")
+      .required("The barcode_number in the params is required")
       .nullable()
       .noUnknown(true),
   });
@@ -851,14 +885,14 @@ async function HealthInfoValidation(
         )
         .typeError("The diseases Should be array of objects"),
     })
-      .required("The data are required")
+      .required("The body is required")
       .nullable()
       .noUnknown(true)
       .strict(true),
   });
 
   try {
-    const response = await userSchema.validate({ query: req.query });
+    const response = await userSchema.validate({ body: req.body });
     next();
   } catch (e: any) {
     return res.status(400).send(e.message);
@@ -898,7 +932,7 @@ async function editUserGeneralInfoValidation(
           "date_of_birth must be in format yyyy-MM-dd"
         ),
     })
-      .required("The data are required")
+      .required("The body is required")
       .nullable()
       .strict(true)
       .noUnknown(true),
@@ -924,10 +958,17 @@ async function NCPValidation(req: Request, res: Response, next: NextFunction) {
 
           answer: string()
             .typeError("The answer Should be string")
-            .required("the answer is required")
+            .test("required", "the answer is required", (value, { parent }) => {
+              if (!value && parent.status) return false;
+              else return true;
+            })
+            .strict(true),
+          status: boolean()
+            .typeError("The status Should be true or false")
+            .required("the status is required")
             .strict(true),
         })
-        .required("The data are required")
+        .required("The body is required")
         .nullable()
         .noUnknown(true)
         .strict(true)
@@ -935,7 +976,7 @@ async function NCPValidation(req: Request, res: Response, next: NextFunction) {
   });
 
   try {
-    const response = await userSchema.validate({ query: req.query });
+    const response = await userSchema.validate({ body: req.body });
     next();
   } catch (e: any) {
     return res.status(400).send(e.message);
@@ -962,5 +1003,6 @@ export default {
   barCodeValidation,
   HealthInfoValidation,
   editUserGeneralInfoValidation,
-  NCPValidation
+  NCPValidation,
+  ImageValidation,
 };

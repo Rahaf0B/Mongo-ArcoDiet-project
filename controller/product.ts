@@ -73,11 +73,11 @@ export default class CProduct {
       const db = await mongoConnection.getDB();
       const productInfo = await this.getProductById(product_id);
       if (productInfo) {
-        const data = await db.collection("product_favorite").updateOne(
-          { user_id: new ObjectId(uid) },
+        const data = await db.collection("user").updateOne(
+          { _id: new ObjectId(uid) },
           {
             $addToSet: {
-              products: {
+              "product_favorite": {
                 product_id: new ObjectId(product_id),
               },
             },
@@ -98,11 +98,11 @@ export default class CProduct {
   async removeProductFromFavorite(uid: string, product_id: string) {
     try {
       const db = await mongoConnection.getDB();
-      const data = await db.collection("product_favorite").updateOne(
-        { user_id: new ObjectId(uid) },
+      const data = await db.collection("user").updateOne(
+        { _id: new ObjectId(uid) },
         {
           $pull: {
-            products: {
+            "product_favorite": {
               product_id: new ObjectId(product_id),
             },
           },
@@ -116,15 +116,15 @@ export default class CProduct {
   async getProductsFromFavorite(uid: string): Promise<any> {
     try {
       const db = await mongoConnection.getDB();
-      const data = await db.collection("product_favorite").aggregate([
-        { $match: { user_id: new ObjectId(uid) } },
+      const data = await db.collection("user").aggregate([
+        { $match: { _id: new ObjectId(uid) } },
         {
-          $unwind: "$products",
+          $unwind: "$product_favorite",
         },
         {
           $lookup: {
             from: "products",
-            localField: "products.product_id",
+            localField: "product_favorite.product_id",
             foreignField: "_id",
             as: "productsInfo",
           },
@@ -142,9 +142,9 @@ export default class CProduct {
         {
           $project: {
             _id: 0,
-            user_id: 0,
-            products: 0,
-            productsInfo: 0,
+            product_id:1,
+            name_arabic:1,
+            name_english:1
           },
         },
       ]);

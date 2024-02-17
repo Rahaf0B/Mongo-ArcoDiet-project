@@ -105,13 +105,21 @@ export default class CAppointment {
       const db = await mongoConnection.getDB();
       const session = await mongoConnection.createSessionMongo();
       try {
+        const starting_time = moment(appointmentInfo.starting_time, "HH:mmA")
+          .utc()
+          .format("HH:mmA");
         const appointmentReserved = await session.withTransaction(async () => {
           const appointment = db.collection("appointment").aggregate([
             {
               $match: {
-                nutritionist_id: new ObjectId(
-                  appointmentInfo.nutritionist_id as string
-                ),
+                $and: [
+                  {
+                    nutritionist_id: new ObjectId(
+                      appointmentInfo.nutritionist_id as string
+                    ),
+                  },
+                  { nutritionist_id:{$ne:new ObjectId(uid)} },
+                ],
               },
             },
             {
@@ -122,16 +130,15 @@ export default class CAppointment {
                 $and: [
                   { "appointments.date": new Date(appointmentInfo.date) },
                   {
-                    "appointments.starting_time": appointmentInfo.starting_time,
+                    "appointments.starting_time": starting_time,
                   },
                   { "appointments.available": true },
                 ],
               },
             },
           ]);
-          var appointmentFound = await appointment.toArray();
-
-          if (appointmentFound.length > 0) {
+          var appointmentFound = (await appointment.toArray()).at(0);
+          if (appointmentFound) {
             const userReservation = await db
               .collection("appointment")
               .aggregate([
@@ -144,8 +151,7 @@ export default class CAppointment {
                       { "appointments.user_id": new ObjectId(uid) },
                       { "appointments.date": new Date(appointmentInfo.date) },
                       {
-                        "appointments.starting_time":
-                          appointmentInfo.starting_time,
+                        "appointments.starting_time": starting_time,
                       },
                     ],
                   },
@@ -182,7 +188,7 @@ export default class CAppointment {
                           },
                           {
                             "elem1.starting_time": {
-                              $eq: appointmentInfo.starting_time,
+                              $eq: starting_time,
                             },
                           },
                           { "elem1.available": { $eq: true } },
@@ -191,9 +197,9 @@ export default class CAppointment {
                     ],
                   }
                 );
-              delete appointmentFound[0].appointments.available;
+              delete appointmentFound.appointments.available;
 
-              return appointmentFound[0];
+              return appointmentFound;
             }
           } else {
             throw new Error(

@@ -120,7 +120,8 @@ export default class CNutritionist {
           },
         },
       ]);
-      return data.toArray() as unknown as IUser;
+      const dataToReturn=await data.toArray()
+      return dataToReturn[0] as IUser;
     } catch (e: any) {
       throw new Error(e.message);
     }
@@ -130,11 +131,11 @@ export default class CNutritionist {
       const db = await mongoConnection.getDB();
       const nutritionistInfo = await this.getOneNutritionist(nutritionist_id);
       if (nutritionistInfo) {
-        const data = await db.collection("nutritionist-favorite").updateOne(
-          { user_id: new ObjectId(uid) },
+        const data = await db.collection("user").updateOne(
+          { _id: new ObjectId(uid) },
           {
             $addToSet: {
-              nutritionists: {
+              nutritionist_favorite: {
                 nutritionist_id: new ObjectId(nutritionist_id),
               },
             },
@@ -155,11 +156,11 @@ export default class CNutritionist {
   async removeNutritionistFromFavorite(uid: string, nutritionist_id: string) {
     try {
       const db = await mongoConnection.getDB();
-      const data = await db.collection("nutritionist-favorite").updateOne(
-        { user_id: new ObjectId(uid) },
+      const data = await db.collection("user").updateOne(
+        { _id: new ObjectId(uid) },
         {
           $pull: {
-            nutritionists: {
+            nutritionist_favorite: {
               nutritionist_id: new ObjectId(nutritionist_id),
             },
           },
@@ -173,15 +174,15 @@ export default class CNutritionist {
   async getNutritionistFromFavorite(uid: string): Promise<any> {
     try {
       const db = await mongoConnection.getDB();
-      const data = await db.collection("nutritionist-favorite").aggregate([
-        { $match: { user_id: new ObjectId(uid) } },
+      const data = await db.collection("user").aggregate([
+        { $match: { _id: new ObjectId(uid) } },
         {
-          $unwind: "$nutritionists",
+          $unwind: "$nutritionist_favorite",
         },
         {
           $lookup: {
             from: "user",
-            localField: "nutritionists.nutritionist_id",
+            localField: "nutritionist_favorite.nutritionist_id",
             foreignField: "_id",
             as: "nutritionistInfo",
           },
@@ -199,9 +200,9 @@ export default class CNutritionist {
         {
           $project: {
             _id: 0,
-            user_id: 0,
-            nutritionists: 0,
-            nutritionistInfo: 0,
+            nutritionist_id:1,
+            nutritionist_first_name: 1,
+            nutritionist_last_name: 1,
           },
         },
       ]);

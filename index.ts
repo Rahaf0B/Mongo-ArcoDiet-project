@@ -8,8 +8,8 @@ import appointmentRoutes from "./routes/appointment";
 import nutritionistRoutes from "./routes/nutritionist";
 import messageRoutes from "./routes/message";
 import handleWsRoutes from "./consumer";
+import healthRoutes from "./routes/health";
 import { Server } from "socket.io";
-import authorization from "./middleware/authorization";
 import dotenv from "dotenv";
 dotenv.config();
 const app = express();
@@ -38,6 +38,8 @@ app.use("/product", productRoutes);
 app.use("/appointment", appointmentRoutes);
 app.use("/nutritionist", nutritionistRoutes);
 app.use("/message", messageRoutes);
+app.use("/health", healthRoutes);
+
 
 
 app.use(async (req: any, res: any, next: any) => {

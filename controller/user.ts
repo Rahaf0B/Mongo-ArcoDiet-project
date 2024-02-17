@@ -16,6 +16,7 @@ import dateHandler from "../utlis/dateHandler";
 import CProduct from "./product";
 import { cloudinaryImageDestroyMethod } from "../middleware/imageuploader";
 import { AsyncResource } from "async_hooks";
+import { match } from "assert";
 
 export default class CUser {
   private static instance: CUser;
@@ -84,16 +85,16 @@ export default class CUser {
     }
   }
 
-
-async clearSession(user_id: string) {
-try{
-  const db = await mongoConnection.getDB();
-  const data = await db.collection("session").deleteMany({user_id: new ObjectId(user_id)});
-
-}catch(e:any){
-throw new Error(e.message);
-}
-}
+  async clearSession(user_id: string) {
+    try {
+      const db = await mongoConnection.getDB();
+      const data = await db
+        .collection("session")
+        .deleteMany({ user_id: new ObjectId(user_id) });
+    } catch (e: any) {
+      throw new Error(e.message);
+    }
+  }
   async CreateUser(data: IUser, userType: number): Promise<string> {
     try {
       switch (userType) {
@@ -606,16 +607,39 @@ throw new Error(e.message);
     }
   }
 
-  async updateNCPForm(userId: string, ncpData: INCPForm): Promise<boolean> {
+  async updateNCPForm(userId: string, ncpData: INCPForm[]): Promise<boolean> {
     try {
       const db = await mongoConnection.getDB();
-      const ncp = await db.collection("user").updateOne(
-        {
-          _id: new ObjectId(userId),
+
+      const bulkOps = [];
+
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: new ObjectId(userId) },
+          update: {
+            $pull: {
+              ncp: {
+                question: { $in: ncpData.map((obj) => obj.question) },
+              },
+            },
+          },
         },
-        { $addToSet: { ncp: { $each: ncpData } } },
-        { upsert: true }
-      );
+      });
+
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: new ObjectId(userId) },
+          update: {
+            $addToSet: {
+              ncp: {
+                $each: ncpData,
+              },
+            },
+          },
+        },
+      });
+
+     const data= await db.collection("user").bulkWrite(bulkOps as any);
 
       return true;
     } catch (error: any) {
@@ -630,15 +654,15 @@ throw new Error(e.message);
         {
           _id: new ObjectId(userId),
         },
-        
-        { 
+
+        {
           projection: {
-            _id:0,
+            _id: 0,
             ncp: 1,
           },
         }
       );
-      return  ncp?.ncp ? ncp?.ncp as unknown as INCPForm[] : [];
+      return ncp?.ncp ? (ncp?.ncp as unknown as INCPForm[]) : [];
     } catch (error: any) {
       throw new Error(error.message);
     }

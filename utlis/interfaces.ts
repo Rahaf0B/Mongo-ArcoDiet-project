@@ -94,5 +94,6 @@ export interface IMessage {
 
 export interface INCPForm {
   question: string;
-  answer: string;
+  answer?: string;
+status:boolean;
 }

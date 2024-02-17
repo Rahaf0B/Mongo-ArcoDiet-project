@@ -11,37 +11,8 @@ router.use(cookieParser());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
 
-router.post(
-  "/",
-  authorization.authenticateUser,
-  permission.nutritionistPermission,
-  validation.addOrDeleteAppointmentValidation,
-  async (req, res) => {
-    try {
-      const instance = CAppointment.getInstance();
-      const data = await instance.addAppointment(req.uid, req.body);
-      res.send(data);
-    } catch (err) {
-      res.status(500).end();
-    }
-  }
-);
 
-router.get(
-  "/",
-  authorization.authenticateUser,
-  permission.nutritionistPermission,
-  validation.dateValidation,
-  async (req, res) => {
-    try {
-      const instance = CAppointment.getInstance();
-      const data = await instance.getNutritionistAppointments(req.uid,req.query.date as string);
-      res.send(data);
-    } catch (err) {
-      res.status(500).end();
-    }
-  }
-);
+
 
 router.get(
   "/nutritionist-appointment/:id",
@@ -130,16 +101,17 @@ router.get(
   }
 );
 
-router.patch(
-  "/delete-appointment",
+
+router.get(
+  "/",
   authorization.authenticateUser,
   permission.nutritionistPermission,
-  validation.addOrDeleteAppointmentValidation,
+  validation.dateValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();
-      const data = await instance.deleteAppointment(req.uid, req.body);
-      res.status(200).send(data);
+      const data = await instance.getNutritionistAppointments(req.uid,req.query.date as string);
+      res.send(data);
     } catch (err) {
       res.status(500).end();
     }
@@ -164,10 +136,28 @@ router.post(
   }
 );
 
-router.delete(
+router.post(
+  "/",
+  authorization.authenticateUser,
+  permission.nutritionistPermission,
+  validation.addOrDeleteAppointmentValidation,
+  async (req, res) => {
+    try {
+      const instance = CAppointment.getInstance();
+      const data = await instance.addAppointment(req.uid, req.body);
+      res.send(data);
+    } catch (err) {
+      res.status(500).end();
+    }
+  }
+);
+
+
+router.patch(
   "/delete-appointment",
   authorization.authenticateUser,
   permission.nutritionistPermission,
+  validation.addOrDeleteAppointmentValidation,
   async (req, res) => {
     try {
       const instance = CAppointment.getInstance();

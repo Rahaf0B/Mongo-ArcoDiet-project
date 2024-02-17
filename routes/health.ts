@@ -27,3 +27,6 @@ router.get("/diseases", async (req, res) => {
     res.status(500).end();
   }
 });
+
+
+export default router;

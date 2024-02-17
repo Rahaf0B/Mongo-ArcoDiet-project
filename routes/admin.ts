@@ -17,7 +17,7 @@ router.post(
     try {
       const instance = CAdmin.getInstance();
       const token = await instance.CreateAdminUser(req.body);
-      res.status(200).setHeader("Authorization", token).send({ msg: "ok" });
+      res.status(200).cookie("session_token", token).send({ msg: "ok" });
     } catch (err: any) {
       if (err?.cause == 11000) {
         res.status(400).send("Email is already registered");

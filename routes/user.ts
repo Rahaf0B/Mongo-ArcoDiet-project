@@ -122,7 +122,7 @@ router.post(
     try {
       const instance = CUser.getInstance();
       const token = await instance.LoginUser(req.body);
-      res.status(200).setHeader("Authorization", token).send({ msg: "ok" });
+      res.status(200).cookie("session_token", token).send({ msg: "ok" });
     } catch (err: any) {
       if (err?.cause == "Validation Error") {
         res.status(400).send(err.message);
@@ -220,7 +220,7 @@ router.patch(
 
 router.patch(
   "/change-password",
-  validation.forgetPassValidation,
+  validation.changePassValidation,
   authorization.authenticateUser,
   async (req: Request, res: Response) => {
     try {
@@ -257,6 +257,7 @@ router.patch(
   "/edit-image",
   authorization.authenticateUser,
   upload("user").array("images"),
+  validation.ImageValidation,
   async (req: Request, res: Response) => {
     try {
       const instance = CUser.getInstance();
